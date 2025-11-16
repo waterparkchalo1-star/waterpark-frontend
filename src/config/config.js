@@ -56,9 +56,9 @@ const config = {
     const cleanPath = imagePath.replace(/^\/+/, '').replace(/\/+/g, '/');
     
     // If it's a path to a backend data file
-    if (cleanPath.includes('Rikocraft.com') || !cleanPath.includes('/')) {
-      // Always use /pawnbackend/data/ prefix for backend files
-      const basePath = cleanPath.startsWith('pawnbackend/data/') ? '' : 'pawnbackend/data/';
+    if (cleanPath.includes('Rikocraft.com') || cleanPath.includes('waterbackend/data') || !cleanPath.includes('/')) {
+      // Always use /waterbackend/data/ prefix for backend files
+      const basePath = cleanPath.startsWith('waterbackend/data/') ? '' : 'waterbackend/data/';
       return `${config.API_BASE_URL}/${basePath}${cleanPath}`;
     }
     
