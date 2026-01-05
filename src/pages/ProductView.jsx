@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import CustomCalendar from './CalendarWithPricing';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Video, MapPin } from "lucide-react";
-import { 
+import {
   ShareIcon, StarIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon,
-  DocumentTextIcon, CogIcon, TruckIcon, ChatBubbleLeftRightIcon 
+  DocumentTextIcon, CogIcon, TruckIcon, ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline';
 import MostLoved from '../components/Products/MostLoved';
 import WeeklyBestsellers from '../components/Products/WeeklyBestsellers';
@@ -29,21 +29,21 @@ import { Link } from 'react-router-dom';
 const ProductView = () => {
   const { idOrSlug } = useParams();
   const navigate = useNavigate();
-  
+
   // Extract the product slug from the URL parameter
   const productSlug = extractProductSlugFromUrl(idOrSlug);
   const bookingSectionRef = useRef(null);
 
   // State for UI and product data
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState('');
   const [adultquantity, setadultQuantity] = useState(1);
   const [childquantity, setchildQuantity] = useState(0);
   const [activeTab, setActiveTab] = useState('description');
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // State for modals
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [modalSelectedImage, setModalSelectedImage] = useState(0);
@@ -56,7 +56,7 @@ const ProductView = () => {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [isEditingReview, setIsEditingReview] = useState(false);
   const { user } = useAuth();
-  
+
   // State for dynamic pricing
   const [weekendSetting, setWeekendSetting] = useState(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
@@ -107,10 +107,10 @@ const ProductView = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Convert slug back to a searchable format
         const searchName = productSlug.replace(/-/g, ' ').toLowerCase();
-        
+
         // Fetch from all endpoints to search for products
         const endpoints = [
           config.API_URLS.SHOP,
@@ -119,24 +119,24 @@ const ProductView = () => {
           config.API_URLS.BESTSELLER,
           config.API_URLS.FEATURED_PRODUCTS
         ];
-        
+
         let foundProduct = null;
-        
+
         for (const endpoint of endpoints) {
           try {
             const response = await fetch(endpoint);
             if (!response.ok) continue;
-            
+
             const data = await response.json();
             const products = data.products || data || [];
-            
+
             // Search for product by name (case-insensitive)
             const matchingProduct = products.find(p => {
               if (!p.name) return false;
               const productName = p.name.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
               return productName.includes(searchName) || searchName.includes(productName);
             });
-            
+
             if (matchingProduct) {
               foundProduct = {
                 ...matchingProduct,
@@ -156,11 +156,11 @@ const ProductView = () => {
             console.error(`Error fetching from ${endpoint}:`, error);
           }
         }
-        
+
         if (!foundProduct) {
           throw new Error('waterpark not found');
         }
-        
+
         setProduct(foundProduct);
       } catch (error) {
         setError(error.message || 'Failed to load waterpark details');
@@ -169,7 +169,7 @@ const ProductView = () => {
         setLoading(false);
       }
     };
-    
+
     if (productSlug) {
       fetchProduct();
     }
@@ -182,8 +182,8 @@ const ProductView = () => {
       const reviewsData = await ReviewService.getProductReviews(product._id);
       setReviews(reviewsData.reviews || []);
       if (user?.email) {
-          const userReviewData = await ReviewService.getUserReview(product._id, user.email).catch(() => null);
-          setUserReview(userReviewData);
+        const userReviewData = await ReviewService.getUserReview(product._id, user.email).catch(() => null);
+        setUserReview(userReviewData);
       } else {
         setUserReview(null);
       }
@@ -201,19 +201,19 @@ const ProductView = () => {
   // Helper function to get display price (matches calculation logic)
   const getDisplayPrice = (product, priceType, selectedDate, isSpecialDay) => {
     if (!product || !selectedDate) return product?.[priceType] || 0;
-    
+
     // Check if special pricing exists for this date
     const dateStr = typeof selectedDate === 'string' ? selectedDate : new Date(selectedDate).toISOString().split('T')[0];
     const hasSpecialPricing = product.specialPrices?.[dateStr] && Object.keys(product.specialPrices[dateStr]).length > 0;
-    
+
     if (hasSpecialPricing) {
       // Use special pricing if available (overrides weekend/regular pricing)
       return getEffectivePrice(product, priceType, selectedDate);
     } else if (isSpecialDay) {
       // Use weekend pricing if no special pricing
-      const weekendPriceType = priceType === 'adultprice' ? 'weekendprice' : 
-                              priceType === 'childprice' ? 'price' : 
-                              priceType === 'advanceprice' ? 'weekendadvance' : priceType;
+      const weekendPriceType = priceType === 'adultprice' ? 'weekendprice' :
+        priceType === 'childprice' ? 'price' :
+          priceType === 'advanceprice' ? 'weekendadvance' : priceType;
       return getEffectivePrice(product, weekendPriceType, selectedDate) || getEffectivePrice(product, priceType, selectedDate);
     } else {
       // Use regular pricing
@@ -224,30 +224,30 @@ const ProductView = () => {
   // --- DYNAMIC PRICE CALCULATION HOOK ---
   useEffect(() => {
     if (!product || loadingSettings) return;
-    
+
     const checkIsSpecialDay = () => {
       if (!selectedDate) return false;
-      
+
       // Check if weekend pricing is enabled in settings
       if (weekendSetting && weekendSetting.value.status) {
         // Check if this date is manually selected as a special day
-        const isManuallySelected = (weekendSetting.value.dates || []).some(dbDateString => 
-            new Date(dbDateString).toDateString() === new Date(selectedDate).toDateString()
+        const isManuallySelected = (weekendSetting.value.dates || []).some(dbDateString =>
+          new Date(dbDateString).toDateString() === new Date(selectedDate).toDateString()
         );
         if (isManuallySelected) return true;
       }
-      
+
       // Check if it's automatically a weekend day (Saturday = 6, Sunday = 0)
       const selectedDateObj = new Date(selectedDate);
       const dayOfWeek = selectedDateObj.getDay();
       const isWeekendDay = dayOfWeek === 0; // Sunday or Saturday
-      
+
       return isWeekendDay;
     };
-    
+
     const isSpecial = checkIsSpecialDay();
     setIsSpecialDay(isSpecial);
-    
+
     // Calculate totals using utility function
     const { grandTotal: calculatedGrandTotal, advanceTotal: calculatedAdvanceTotal } = calculateTicketTotal(
       product,
@@ -256,12 +256,12 @@ const ProductView = () => {
       selectedDate,
       isSpecial
     );
-    
+
     setGrandTotal(calculatedGrandTotal);
     setAdvanceTotal(calculatedAdvanceTotal);
   }, [selectedDate, adultquantity, childquantity, product, weekendSetting, loadingSettings]);
 
-  
+
   // --- ALL HANDLER FUNCTIONS ---
   const handleOpenTermsModal = () => {
     if (!selectedDate) return toast.error("Please select a date for your booking.");
@@ -306,7 +306,7 @@ const ProductView = () => {
     const shareData = { title: product.name, text: `Check out: ${product.name}`, url: window.location.href };
     try {
       let url;
-      switch(option) {
+      switch (option) {
         case 'native': if (navigator.share) await navigator.share(shareData); else { await navigator.clipboard.writeText(shareData.url); toast.success('Link copied!'); } break;
         case 'whatsapp': url = `https://wa.me/?text=${encodeURIComponent(`${shareData.text} ${shareData.url}`)}`; window.open(url, '_blank'); break;
         case 'facebook': url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareData.url)}`; window.open(url, '_blank'); break;
@@ -323,8 +323,8 @@ const ProductView = () => {
   const handleModalClose = () => setIsImageModalOpen(false);
 
   // --- RENDER LOGIC ---
-    if (loading || loadingSettings) return <Loader fullScreen={true} withHeaderFooter={true} size="large" text="Loading waterpark details..." />;
-  if (error) return ( <div className="flex flex-col items-center justify-center min-h-[60vh] text-center"><h2 className="text-2xl font-bold text-red-600 mb-2">{error}</h2><button onClick={() => navigate('/shop')} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Back to waterpark</button></div>);
+  if (loading || loadingSettings) return <Loader fullScreen={true} withHeaderFooter={true} size="large" text="Loading waterpark details..." />;
+  if (error) return (<div className="flex flex-col items-center justify-center min-h-[60vh] text-center"><h2 className="text-2xl font-bold text-red-600 mb-2">{error}</h2><button onClick={() => navigate('/shop')} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Back to waterpark</button></div>);
   if (!product) return null;
 
   const productSEO = seoConfig.product(product);
@@ -337,25 +337,25 @@ const ProductView = () => {
   })();
   const averageRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.stars, 0) / reviews.length : 0;
   const isOutOfStock = product.outOfStock === true || product.inStock === false;
-  
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className=" w-full h-full bg-[#00B4D8] overflow-hidden">
       <AnimatedBubbles />
       <SEO {...productSEO} />
       <div className="container mx-auto px-4 py-4 sm:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-start">
-          
+
           {/* --- LEFT COLUMN: IMAGE GALLERY --- */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="lg:col-span-5 space-y-4 flex flex-col">
             <div className="relative w-full flex items-center justify-center rounded-2xl overflow-hidden bg-gradient-to-br from-[#CAF0F8] via-[#ADE8F4] to-[#90E0EF] group shadow-xl border border-[#0077B6]/20" style={{ maxHeight: '60vh' }}>
               <img src={productImages[selectedImage]} alt={product.name} className="max-w-full max-h-[60vh] object-cover cursor-pointer" onClick={handleImageClick} />
               {productImages.length > 1 && (
-                  <>
-                      <div className="absolute top-3 right-3 bg-[#03045E]/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">📷 {productImages.length} Photos</div>
-                      <motion.button whileHover={{ x: -5, scale: 1.1 }} className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-[#90E0EF] text-[#0077B6] p-3 rounded-full shadow-lg border-2 border-[#0077B6]/30 transition-all" onClick={handlePreviousImage}><ChevronLeftIcon className="h-6 w-6" /></motion.button>
-                      <motion.button whileHover={{ x: 5, scale: 1.1 }} className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-[#90E0EF] text-[#0077B6] p-3 rounded-full shadow-lg border-2 border-[#0077B6]/30 transition-all" onClick={handleNextImage}><ChevronRightIcon className="h-6 w-6" /></motion.button>
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute bottom-3 left-1/6 -translate-x-1/2 bg-[#023E8A]/80 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">{selectedImage + 1} / {productImages.length}</motion.div>
-                  </>
+                <>
+                  <div className="absolute top-3 right-3 bg-[#03045E]/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">📷 {productImages.length} Photos</div>
+                  <motion.button whileHover={{ x: -5, scale: 1.1 }} className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-[#90E0EF] text-[#0077B6] p-3 rounded-full shadow-lg border-2 border-[#0077B6]/30 transition-all" onClick={handlePreviousImage}><ChevronLeftIcon className="h-6 w-6" /></motion.button>
+                  <motion.button whileHover={{ x: 5, scale: 1.1 }} className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-[#90E0EF] text-[#0077B6] p-3 rounded-full shadow-lg border-2 border-[#0077B6]/30 transition-all" onClick={handleNextImage}><ChevronRightIcon className="h-6 w-6" /></motion.button>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute bottom-3 left-1/6 -translate-x-1/2 bg-[#023E8A]/80 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">{selectedImage + 1} / {productImages.length}</motion.div>
+                </>
               )}
             </div>
             {productImages.length > 1 && (
@@ -372,7 +372,7 @@ const ProductView = () => {
           {/* --- RIGHT COLUMN: PRODUCT DETAILS --- */}
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="lg:col-span-7 space-y-6 flex flex-col justify-start bg-gradient-to-br from-[#E0F7FA] to-[#B2EBF2] p-6 rounded-2xl shadow-lg relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-24 bg-[#00B4D8] rounded-b-[50%] opacity-20 pointer-events-none"></div>
-            
+
             {/* Product Header */}
             <div className="space-y-3 relative z-10">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -391,8 +391,8 @@ const ProductView = () => {
             {/* Price Section */}
             <div className="space-y-2 sm:space-y-3">
               {/* Weekend Pricing Notice */}
-             
-              
+
+
               <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
                 <span className="text-2xl sm:text-3xl font-bold text-blue-900">
                   ₹{getDisplayPrice(product, 'adultprice', selectedDate, isSpecialDay).toFixed(2)}
@@ -405,7 +405,7 @@ const ProductView = () => {
                     </span>
                   </>
                 )}
-               
+
                 {getDisplayPrice(product, 'adultprice', selectedDate, isSpecialDay) !== product.adultprice && !isSpecialDay && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">
                     Special Price
@@ -429,204 +429,204 @@ const ProductView = () => {
                 </nav>
               </div>
             </div>
-            
+
             <div className="py-8">
-           <AnimatePresence mode="wait">
-  {activeTab === 'description' && (
-    <motion.div 
-      key="description" 
-      initial={{ opacity: 0, y: 20 }} 
-      animate={{ opacity: 1, y: 0 }} 
-      exit={{ opacity: 0, y: -20 }} 
-      transition={{ duration: 0.3 }} 
-      className="grid grid-cols-1 md:grid-cols-2 gap-8"
-    >
-      {/* Features Panel */}
-      <div className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10">
-        <h4 className="font-display font-bold text-sky-900 mb-4 text-xl flex items-center gap-2">
-          💡 Features
-        </h4>
-        <div className="space-y-3 font-sans text-sky-800 leading-relaxed">
-          {product.utility ? product.utility.split(/\r?\n/).map((line, index) => (
-            <p key={index} className="font-medium">{line.trim()}</p>
-          )) : <p>N/A</p>}
-        </div>
-      </div>
-      {/* Facility Panel */}
-      <div className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10">
-        <h4 className="font-display font-bold text-sky-900 mb-4 text-xl flex items-center gap-2">
-          🏝️ Facility
-        </h4>
-        <p className="font-sans text-sky-800 whitespace-pre-line leading-relaxed">
-          {product.care || 'Facility information not available'}
-        </p>
-      </div>
-    </motion.div>
-  )}
+              <AnimatePresence mode="wait">
+                {activeTab === 'description' && (
+                  <motion.div
+                    key="description"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-8"
+                  >
+                    {/* Features Panel */}
+                    <div className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10">
+                      <h4 className="font-display font-bold text-sky-900 mb-4 text-xl flex items-center gap-2">
+                        💡 Features
+                      </h4>
+                      <div className="space-y-3 font-sans text-sky-800 leading-relaxed">
+                        {product.utility ? product.utility.split(/\r?\n/).map((line, index) => (
+                          <p key={index} className="font-medium">{line.trim()}</p>
+                        )) : <p>N/A</p>}
+                      </div>
+                    </div>
+                    {/* Facility Panel */}
+                    <div className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10">
+                      <h4 className="font-display font-bold text-sky-900 mb-4 text-xl flex items-center gap-2">
+                        🏝️ Facility
+                      </h4>
+                      <p className="font-sans text-sky-800 whitespace-pre-line leading-relaxed">
+                        {product.care || 'Facility information not available'}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
 
-  {activeTab === 'specifications' && (
-    <motion.div 
-      key="specifications" 
-      initial={{ opacity: 0, y: 20 }} 
-      animate={{ opacity: 1, y: 0 }} 
-      exit={{ opacity: 0, y: -20 }} 
-      transition={{ duration: 0.3 }} 
-      className="space-y-8"
-    >
-      {/* Basic Info Panel */}
-      <div className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10">
-        <h4 className="font-display font-bold text-sky-900 mb-4 text-xl flex items-center gap-2">
-          ℹ️ Basic Information
-        </h4>
-        <div className="space-y-4">
-          <div>
-            <h5 className="font-display text-lg font-bold mb-2 text-sky-900">Description</h5>
-            <div 
-              className="font-sans text-sky-800 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: product.description || '' }}
-            />
-          </div>
-          <div>
-            <h5 className="font-display text-lg font-bold mb-2 text-sky-900">Location</h5>
-            <p className="font-sans text-sky-800 leading-relaxed">{product.category}</p>
-          </div>
-        </div>
-      </div>
+                {activeTab === 'specifications' && (
+                  <motion.div
+                    key="specifications"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-8"
+                  >
+                    {/* Basic Info Panel */}
+                    <div className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10">
+                      <h4 className="font-display font-bold text-sky-900 mb-4 text-xl flex items-center gap-2">
+                        ℹ️ Basic Information
+                      </h4>
+                      <div className="space-y-4">
+                        <div>
+                          <h5 className="font-display text-lg font-bold mb-2 text-sky-900">Description</h5>
+                          <div
+                            className="font-sans text-sky-800 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: product.description || '' }}
+                          />
+                        </div>
+                        <div>
+                          <h5 className="font-display text-lg font-bold mb-2 text-sky-900">Location</h5>
+                          <p className="font-sans text-sky-800 leading-relaxed">{product.category}</p>
+                        </div>
+                      </div>
+                    </div>
 
-      {/* Pricing Panel */}
-      <div className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10">
-        <h4 className="font-display font-bold text-sky-900 mb-4 text-xl flex items-center gap-2">
-          💵 Pricing
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div>
-            <span className="font-sans text-sm font-medium text-sky-700">Adult Ticket</span>
-            <p className="font-display font-bold text-3xl text-cyan-600 mt-1">
-              ₹{getDisplayPrice(product, 'adultprice', selectedDate, isSpecialDay)?.toFixed(0) || 'N/A'}
-            </p>
-            {getDisplayPrice(product, 'adultprice', selectedDate, isSpecialDay) !== product.adultprice && !isSpecialDay && (
-              <p className="text-xs text-blue-600 font-medium">Special Price</p>
-            )}
-            
-          </div>
-          <div>
-            <span className="font-sans text-sm font-medium text-sky-700">Child Ticket</span>
-            <p className="font-display font-bold text-3xl text-cyan-600 mt-1">
-              ₹{getDisplayPrice(product, 'childprice', selectedDate, isSpecialDay)?.toFixed(0) || 'N/A'}
-            </p>
-            {getDisplayPrice(product, 'childprice', selectedDate, isSpecialDay) !== product.childprice && !isSpecialDay && (
-              <p className="text-xs text-blue-600 font-medium">Special Price</p>
-            )}
-            
-          </div>
-          <div>
-            <span className="font-sans text-sm font-medium text-sky-700">Advance Payment</span>
-            <p className="font-display font-bold text-3xl text-cyan-600 mt-1">
-              ₹{getDisplayPrice(product, 'advanceprice', selectedDate, isSpecialDay)?.toFixed(0) || 'N/A'}
-            </p>
-           
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  )}
+                    {/* Pricing Panel */}
+                    <div className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10">
+                      <h4 className="font-display font-bold text-sky-900 mb-4 text-xl flex items-center gap-2">
+                        💵 Pricing
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                          <span className="font-sans text-sm font-medium text-sky-700">Adult Ticket</span>
+                          <p className="font-display font-bold text-3xl text-cyan-600 mt-1">
+                            ₹{getDisplayPrice(product, 'adultprice', selectedDate, isSpecialDay)?.toFixed(0) || 'N/A'}
+                          </p>
+                          {getDisplayPrice(product, 'adultprice', selectedDate, isSpecialDay) !== product.adultprice && !isSpecialDay && (
+                            <p className="text-xs text-blue-600 font-medium">Special Price</p>
+                          )}
 
-  {activeTab === 'FAQ' && (
-    <motion.div 
-      key="FAQ" 
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}
-      className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10 font-sans text-sky-800 leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: product.faq?.replace(/\n/g, "<br/>") }} 
-    />
-  )}
+                        </div>
+                        <div>
+                          <span className="font-sans text-sm font-medium text-sky-700">Child Ticket</span>
+                          <p className="font-display font-bold text-3xl text-cyan-600 mt-1">
+                            ₹{getDisplayPrice(product, 'childprice', selectedDate, isSpecialDay)?.toFixed(0) || 'N/A'}
+                          </p>
+                          {getDisplayPrice(product, 'childprice', selectedDate, isSpecialDay) !== product.childprice && !isSpecialDay && (
+                            <p className="text-xs text-blue-600 font-medium">Special Price</p>
+                          )}
 
-  {activeTab === 'video' && (
-    <motion.div key="video" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-      {product.videos?.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {product.videos.map((videoUrl, index) => (
-            <div key={index} className="rounded-2xl overflow-hidden shadow-xl">
-              <video src={videoUrl} controls className="w-full h-auto" preload="metadata" />
+                        </div>
+                        <div>
+                          <span className="font-sans text-sm font-medium text-sky-700">Advance Payment</span>
+                          <p className="font-display font-bold text-3xl text-cyan-600 mt-1">
+                            ₹{getDisplayPrice(product, 'advanceprice', selectedDate, isSpecialDay)?.toFixed(0) || 'N/A'}
+                          </p>
+
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === 'FAQ' && (
+                  <motion.div
+                    key="FAQ"
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}
+                    className="p-6 rounded-3xl bg-white/60 backdrop-blur-lg border border-sky-200/50 shadow-2xl shadow-sky-900/10 font-sans text-sky-800 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: product.faq?.replace(/\n/g, "<br/>") }}
+                  />
+                )}
+
+                {activeTab === 'video' && (
+                  <motion.div key="video" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+                    {product.videos?.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {product.videos.map((videoUrl, index) => (
+                          <div key={index} className="rounded-2xl overflow-hidden shadow-xl">
+                            <video src={videoUrl} controls className="w-full h-auto" preload="metadata" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="font-sans text-center p-8">No videos available.</p>
+                    )}
+                  </motion.div>
+                )}
+
+                {activeTab === 'map' && (
+                  <motion.div key="map" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+                    <iframe
+                      title="map"
+                      src={product.maplink}
+                      width="100%"
+                      height="450"
+                      className="border-0 rounded-2xl shadow-xl"
+                      allowFullScreen=""
+                      loading="lazy">
+                    </iframe>
+                  </motion.div>
+                )}
+
+                {activeTab === 'reviews' && (
+                  <motion.div
+                    key="reviews"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-8"
+                  >
+                    {reviewsLoading ? <p>Loading reviews...</p> : (
+                      <>
+                        <ReviewForm productId={product._id} existingReview={userReview} onReviewSubmitted={handleReviewSubmitted} onReviewUpdated={handleReviewUpdated} onReviewDeleted={handleReviewDeleted} />
+                        <ReviewList reviews={reviews} />
+                      </>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          ))}
-        </div>
-      ) : (
-        <p className="font-sans text-center p-8">No videos available.</p>
-      )}
-    </motion.div>
-  )}
 
-  {activeTab === 'map' && (
-    <motion.div key="map" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-      <iframe 
-        title="map" 
-        src={product.maplink} 
-        width="100%" 
-        height="450" 
-        className="border-0 rounded-2xl shadow-xl"
-        allowFullScreen="" 
-        loading="lazy">
-      </iframe>
-    </motion.div>
-  )}
-
-  {activeTab === 'reviews' && (
-    <motion.div 
-      key="reviews" 
-      initial={{ opacity: 0, y: 20 }} 
-      animate={{ opacity: 1, y: 0 }} 
-      exit={{ opacity: 0, y: -20 }} 
-      transition={{ duration: 0.3 }} 
-      className="space-y-8"
-    >
-      {reviewsLoading ? <p>Loading reviews...</p> : (
-        <>
-          <ReviewForm productId={product._id} existingReview={userReview} onReviewSubmitted={handleReviewSubmitted} onReviewUpdated={handleReviewUpdated} onReviewDeleted={handleReviewDeleted} />
-          <ReviewList reviews={reviews} />
-        </>
-      )}
-    </motion.div>
-  )}
-</AnimatePresence>
-            </div>
-            
             {/* Booking Section */}
             <div ref={bookingSectionRef} className="space-y-6 pt-4 border-t-2 border-dashed border-[#0096C7]">
               <div className=" relative z-5">
-                <CustomCalendar 
-                  selectedDate={selectedDate} 
-                  onDateChange={(d) => setSelectedDate(d)} 
-                  normalPrice={product.adultprice} 
-                  weekendPrice={product.weekendprice} 
-                  specialDates={weekendSetting?.value?.dates || []} 
+                <CustomCalendar
+                  selectedDate={selectedDate}
+                  onDateChange={(d) => setSelectedDate(d)}
+                  normalPrice={product.adultprice}
+                  weekendPrice={product.weekendprice}
+                  specialDates={weekendSetting?.value?.dates || []}
                   isPricingActive={weekendSetting?.value?.status || false}
                   product={product}
                 />
               </div>
               <div className="flex flex-wrap items-center  justify-center gap-10">
-              <div className="flex items-center gap-4">
-    {/* Adult Stepper */}
-    <div className="flex items-center gap-1.5">
-        <label className="text-sm font-medium text-gray-700">Adult:</label>
-        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
-            <button onClick={() => handleadultQuantityChange(adultquantity - 1)} className="px-2.5 py-1 hover:bg-[#CAF0F8] transition-colors disabled:opacity-50" disabled={adultquantity <= 0}>-</button>
-            <span className="px-3 py-1 border-x border-gray-300 text-sm font-semibold text-[#03045E]">{adultquantity}</span>
-            <button onClick={() => handleadultQuantityChange(adultquantity + 1)} className="px-2.5 py-1 hover:bg-[#CAF0F8] transition-colors">+</button>
-        </div>
-    </div>
+                <div className="flex items-center gap-4">
+                  {/* Adult Stepper */}
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Adult:</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                      <button onClick={() => handleadultQuantityChange(adultquantity - 1)} className="px-2.5 py-1 hover:bg-[#CAF0F8] transition-colors disabled:opacity-50" disabled={adultquantity <= 0}>-</button>
+                      <span className="px-3 py-1 border-x border-gray-300 text-sm font-semibold text-[#03045E]">{adultquantity}</span>
+                      <button onClick={() => handleadultQuantityChange(adultquantity + 1)} className="px-2.5 py-1 hover:bg-[#CAF0F8] transition-colors">+</button>
+                    </div>
+                  </div>
 
-    {/* Child Stepper */}
-    <div className="flex items-center gap-1.5">
-        <label className="text-sm font-medium text-gray-700">Child:</label>
-        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
-            <button onClick={() => handlechildQuantityChange(childquantity - 1)} className="px-2.5 py-1 hover:bg-[#CAF0F8] transition-colors disabled:opacity-50" disabled={childquantity <= 0}>-</button>
-            <span className="px-3 py-1 border-x border-gray-300 text-sm font-semibold text-[#03045E]">{childquantity}</span>
-            <button onClick={() => handlechildQuantityChange(childquantity + 1)} className="px-2.5 py-1 hover:bg-[#CAF0F8] transition-colors">+</button>
-        </div>
-    </div>
-</div>
+                  {/* Child Stepper */}
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Child:</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                      <button onClick={() => handlechildQuantityChange(childquantity - 1)} className="px-2.5 py-1 hover:bg-[#CAF0F8] transition-colors disabled:opacity-50" disabled={childquantity <= 0}>-</button>
+                      <span className="px-3 py-1 border-x border-gray-300 text-sm font-semibold text-[#03045E]">{childquantity}</span>
+                      <button onClick={() => handlechildQuantityChange(childquantity + 1)} className="px-2.5 py-1 hover:bg-[#CAF0F8] transition-colors">+</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              
+
               {/* Ticket Summary Table */}
               <div className="w-full flex justify-center relative z-5">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-lg bg-gradient-to-br from-[#00B4D8] via-[#0096C7] to-[#0077B6] rounded-2xl shadow-xl overflow-hidden">
@@ -637,7 +637,7 @@ const ProductView = () => {
                       <motion.tr className="border-t border-white/30 hover:bg-white/10 transition">
                         <td className="px-4 py-3 font-medium">
                           Adult above 8 year
-                         
+
                         </td>
                         <td className="px-4 py-3 text-center">{adultquantity}</td>
                         <td className="px-4 py-3 text-right">
@@ -650,7 +650,7 @@ const ProductView = () => {
                       <motion.tr className="border-t border-white/30 hover:bg-white/10 transition">
                         <td className="px-4 py-3 font-medium">
                           Child 3 to 8 year
-                          
+
                         </td>
                         <td className="px-4 py-3 text-center">{childquantity}</td>
                         <td className="px-4 py-3 text-right">
@@ -664,35 +664,35 @@ const ProductView = () => {
                     <tfoot><motion.tr className="bg-[#48CAE4] text-[#03045E] font-bold text-base"><td className="px-4 py-3 text-left" colSpan={3}>💰 Grand Total</td><td className="px-4 py-3 text-right">₹{grandTotal.toFixed(2)}</td></motion.tr></tfoot>
                   </table>
                   <table className="w-full text-sm text-white ">
-                      <tbody>
-                          {product.paymentType === 'full' ? (
-                            <motion.tr className=" bg-[#48CAE4] text-[#03045E] font-bold "><td className="px-4 py-3 font-bold text-left" colSpan={3}>💰 Pay Now (Full Payment)</td><td className="px-4 py-3 text-right">₹{advanceTotal.toFixed(2)}</td></motion.tr>
-                          ) : (
-                            <>
-                              <motion.tr className=" bg-[#48CAE4] text-[#03045E] font-bold "><td className="px-4 py-3 font-bold text-left" colSpan={3}>💰 Pay Now (Advance)</td><td className="px-4 py-3 text-right">₹{advanceTotal.toFixed(2)}</td></motion.tr>
-                              <motion.tr className=" bg-[#48CAE4] text-[#03045E] font-bold transition"><td className="px-4 py-3 font-bold" colSpan={3}>💰 Pay In Waterpark</td><td className="px-4 py-3 text-right">₹{(grandTotal - advanceTotal).toFixed(2)}</td></motion.tr>
-                            </>
-                          )}
-                      </tbody>
+                    <tbody>
+                      {product.paymentType === 'full' ? (
+                        <motion.tr className=" bg-[#48CAE4] text-[#03045E] font-bold "><td className="px-4 py-3 font-bold text-left" colSpan={3}>💰 Pay Now (Full Payment)</td><td className="px-4 py-3 text-right">₹{advanceTotal.toFixed(2)}</td></motion.tr>
+                      ) : (
+                        <>
+                          <motion.tr className=" bg-[#48CAE4] text-[#03045E] font-bold "><td className="px-4 py-3 font-bold text-left" colSpan={3}>💰 Pay Now (Advance)</td><td className="px-4 py-3 text-right">₹{advanceTotal.toFixed(2)}</td></motion.tr>
+                          <motion.tr className=" bg-[#48CAE4] text-[#03045E] font-bold transition"><td className="px-4 py-3 font-bold" colSpan={3}>💰 Pay In Waterpark</td><td className="px-4 py-3 text-right">₹{(grandTotal - advanceTotal).toFixed(2)}</td></motion.tr>
+                        </>
+                      )}
+                    </tbody>
                   </table>
 
-             
+
                 </motion.div>
               </div>
-      {/* Action Buttons */}
+              {/* Action Buttons */}
               <div className="flex items-center gap-4">
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleOpenTermsModal} disabled={isOutOfStock} className={`w-full flex items-center justify-center gap-3 px-6 py-4 rounded-full font-bold text-lg transition-all shadow-lg ${isOutOfStock ? 'bg-gray-400 text-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-[#00B4D8] to-[#0077B6] text-white hover:shadow-xl'}`}>{isOutOfStock ? 'CURRENTLY UNAVAILABLE' : 'BOOK NOW'}</motion.button>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className=" p-4 bg-white border border-gray-300 rounded-full hover:bg-[#CAF0F8] transition-colors shadow-md" onClick={handleShare}><ShareIcon className="h-5 w-5 text-gray-600" /></motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleOpenTermsModal} disabled={isOutOfStock} className={`w-full flex items-center justify-center gap-3 px-6 py-4 rounded-full font-bold text-lg transition-all shadow-lg ${isOutOfStock ? 'bg-gray-400 text-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-[#00B4D8] to-[#0077B6] text-white hover:shadow-xl'}`}>{isOutOfStock ? 'CURRENTLY UNAVAILABLE' : 'BOOK NOW'}</motion.button>
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className=" p-4 bg-white border border-gray-300 rounded-full hover:bg-[#CAF0F8] transition-colors shadow-md" onClick={handleShare}><ShareIcon className="h-5 w-5 text-gray-600" /></motion.button>
               </div>
-             
+
             </div>
           </motion.div>
         </div>
-        
+
         {/* Related Products Sections */}
         <div className="mt-8">
-            <MostLoved />
-            <WeeklyBestsellers />
+          <MostLoved />
+          <WeeklyBestsellers />
         </div>
       </div>
 
@@ -736,7 +736,7 @@ const ProductView = () => {
                     </div>
                     <span className="text-sm font-medium text-gray-700">Share</span>
                   </button>
-                  
+
                   <button onClick={() => handleShareOption('whatsapp')} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
                     <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                       <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -745,7 +745,7 @@ const ProductView = () => {
                     </div>
                     <span className="text-sm font-medium text-gray-700">WhatsApp</span>
                   </button>
-                  
+
                   <button onClick={() => handleShareOption('copy')} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
                     <div className="w-12 h-12 bg-gray-500 rounded-full flex items-center justify-center">
                       <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -761,113 +761,113 @@ const ProductView = () => {
         )}
       </AnimatePresence>
       <AnimatePresence>
-  {isTermsModalOpen && (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[400]" 
-      onClick={() => setIsTermsModalOpen(false)}
-    >
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }} 
-        animate={{ scale: 1, opacity: 1, y: 0 }} 
-        exit={{ scale: 0.9, opacity: 0, y: 20 }} 
-        transition={{ type: "spring", damping: 25, stiffness: 300 }} 
-        className="bg-gradient-to-br from-[#E0F7FA] to-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden border-2 border-[#00B4D8]" 
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 bg-gradient-to-r from-[#00B4D8] to-[#0077B6] text-white">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-7 w-7" />
-            <h3 className="text-xl font-bold">Booking Confirmation</h3>
-          </div>
-          <button onClick={() => setIsTermsModalOpen(false)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
-            <XMarkIcon className="h-6 w-6" />
-          </button>
-        </div>
+        {isTermsModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[400]"
+            onClick={() => setIsTermsModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-gradient-to-br from-[#E0F7FA] to-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden border-2 border-[#00B4D8]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-5 bg-gradient-to-r from-[#00B4D8] to-[#0077B6] text-white">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="h-7 w-7" />
+                  <h3 className="text-xl font-bold">Booking Confirmation</h3>
+                </div>
+                <button onClick={() => setIsTermsModalOpen(false)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
 
-        {/* Updated Modal Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
-          <h4 className="text-xl font-bold text-[#03045E] mb-4">Terms & Conditions</h4>
-          <div className="space-y-4 text-sm text-gray-800">
+              {/* Updated Modal Content */}
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                <h4 className="text-xl font-bold text-[#03045E] mb-4">Terms & Conditions</h4>
+                <div className="space-y-4 text-sm text-gray-800">
 
-            <div>
-              <h5 className="font-semibold text-[#0077B6]">1. Ticket Redemption</h5>
-              <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
-                <li>Please present your e-ticket/coupon at the counter to collect your entry pass.</li>
-                <li>If partial payment was made online, the remaining balance must be paid at the counter.</li>
-              </ul>
-            </div>
+                  <div>
+                    <h5 className="font-semibold text-[#0077B6]">1. Ticket Redemption</h5>
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
+                      <li>Please present your e-ticket/coupon at the counter to collect your entry pass.</li>
+                      <li>If partial payment was made online, the remaining balance must be paid at the counter.</li>
+                    </ul>
+                  </div>
 
-            <div>
-              <h5 className="font-semibold text-[#0077B6]">2. Mode of Payment</h5>
-              <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
-                <li>The remaining payment can be made in cash / UPI / card (as per waterpark rules).</li>
-              </ul>
-            </div>
+                  <div>
+                    <h5 className="font-semibold text-[#0077B6]">2. Mode of Payment</h5>
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
+                      <li>The remaining payment can be made in cash / UPI / card (as per waterpark rules).</li>
+                    </ul>
+                  </div>
 
-            <div>
-              <h5 className="font-semibold text-[#0077B6]">3. Timings</h5>
-              <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
-                <li>Entry is valid only for the date and time mentioned on your ticket.</li>
-                <li>Guests are requested to arrive on time; late entry may not be guaranteed.</li>
-              </ul>
-            </div>
+                  <div>
+                    <h5 className="font-semibold text-[#0077B6]">3. Timings</h5>
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
+                      <li>Entry is valid only for the date and time mentioned on your ticket.</li>
+                      <li>Guests are requested to arrive on time; late entry may not be guaranteed.</li>
+                    </ul>
+                  </div>
 
-            <div>
-              <h5 className="font-semibold text-[#0077B6]">4. Refund & Cancellation</h5>
-              <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
-                <li>Refund or cancellation requests must be made at least 24 hours before the visit date.</li>
-                <li>Cancellation and refund policies will follow the respective waterpark’s terms.</li>
-              </ul>
-            </div>
+                  <div>
+                    <h5 className="font-semibold text-[#0077B6]">4. Refund & Cancellation</h5>
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
+                      <li>Refund or cancellation requests must be made at least 24 hours before the visit date.</li>
+                      <li>Cancellation and refund policies will follow the respective waterpark’s terms.</li>
+                    </ul>
+                  </div>
 
-            <div>
-              <h5 className="font-semibold text-[#0077B6]">5. Park Rules</h5>
-              <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
-                <li>Drinking, smoking, or carrying prohibited substances is strictly not allowed.</li>
-                <li>Visitors must follow all safety rules, instructions, and dress codes of the waterpark.</li>
-              </ul>
-            </div>
+                  <div>
+                    <h5 className="font-semibold text-[#0077B6]">5. Park Rules</h5>
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
+                      <li>Drinking, smoking, or carrying prohibited substances is strictly not allowed.</li>
+                      <li>Visitors must follow all safety rules, instructions, and dress codes of the waterpark.</li>
+                    </ul>
+                  </div>
 
-            <div>
-              <h5 className="font-semibold text-[#0077B6]">6. Disputes</h5>
-              <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
-                <li>In case of any dispute or misunderstanding, the decision of the waterpark management will be final.</li>
-              </ul>
-            </div>
+                  <div>
+                    <h5 className="font-semibold text-[#0077B6]">6. Disputes</h5>
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
+                      <li>In case of any dispute or misunderstanding, the decision of the waterpark management will be final.</li>
+                    </ul>
+                  </div>
 
-            <div>
-              <h5 className="font-semibold text-[#0077B6]">7. Before Entering</h5>
-              <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
-                <li>Please check your ticket details carefully before entering the waterpark.</li>
-              </ul>
-            </div>
+                  <div>
+                    <h5 className="font-semibold text-[#0077B6]">7. Before Entering</h5>
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600">
+                      <li>Please check your ticket details carefully before entering the waterpark.</li>
+                    </ul>
+                  </div>
 
-            <div>
-              <h5 className="font-semibold text-[#0077B6]">8. Agreement</h5>
-              <p className="mt-1 text-gray-600">By clicking “I Accept & Proceed to Pay”, you confirm that you have read and agreed to these <Link to="/policies" className="text-[#0077B6] hover:underline">Terms & Conditions.</Link></p>
-            </div>
+                  <div>
+                    <h5 className="font-semibold text-[#0077B6]">8. Agreement</h5>
+                    <p className="mt-1 text-gray-600">By clicking “I Accept & Proceed to Pay”, you confirm that you have read and agreed to these <Link to="/policies" className="text-[#0077B6] hover:underline">Terms & Conditions.</Link></p>
+                  </div>
 
-          </div>
-        </div>
+                </div>
+              </div>
 
-        {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 bg-gray-50/80 border-t">
-          <button onClick={() => setIsTermsModalOpen(false)} className="px-5 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
-            Cancel
-          </button>
-          <button onClick={handleProceedToCheckout} className="px-6 py-2 text-sm font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors shadow-sm">
-            I Accept & Proceed to Pay
-          </button>
-        </div>
-        
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 p-4 bg-gray-50/80 border-t">
+                <button onClick={() => setIsTermsModalOpen(false)} className="px-5 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+                  Cancel
+                </button>
+                <button onClick={handleProceedToCheckout} className="px-6 py-2 text-sm font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors shadow-sm">
+                  I Accept & Proceed to Pay
+                </button>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
