@@ -26,11 +26,11 @@ function CheckoutPage() {
       return location.state;
     }
     const dataFromStorage = localStorage.getItem("checkoutData");
-  
+
     if (dataFromStorage) {
-     
+
       return JSON.parse(dataFromStorage);
-     
+
     }
     return {};
   };
@@ -49,19 +49,19 @@ function CheckoutPage() {
     paymentType,
   } = checkoutData;
 
-  
-const formattedDate = new Date(date).toISOString().split("T")[0];
+
+  const formattedDate = new Date(date).toISOString().split("T")[0];
   const [billingDetails, setBillingDetails] = useState({
     firstName: "",
     lastName: "",
     phone: "",
-   waternumber: waternumber,
+    waternumber: waternumber,
     email: "",
     city: "",
-     date: formattedDate, // ✅ sending ISO-supported date
+    date: formattedDate, // ✅ sending ISO-supported date
     createAccount: false,
     total: totalamount,
-    advance:paid,
+    advance: paid,
     terms
   });
 
@@ -111,7 +111,7 @@ const formattedDate = new Date(date).toISOString().split("T")[0];
         {
           code: couponCode,
           cartTotal: totalamount, // Using original paid for validation\
-          
+
           cartItems: cartItems
         }
       );
@@ -146,126 +146,127 @@ const formattedDate = new Date(date).toISOString().split("T")[0];
 
 
 
-// PhonePe payment verification
-const verifyPhonePePayment = async (orderId, merchantOrderId, customBookingId) => {
-  try {
-    console.log("[PhonePe Verify] Starting...");
+  // PhonePe payment verification
+  const verifyPhonePePayment = async (orderId, merchantOrderId, customBookingId) => {
+    try {
+      console.log("[PhonePe Verify] Starting...");
 
-    // Check booking status first
-    const statusResponse = await axios.get(
-      `${import.meta.env.VITE_APP_API_BASE_URL}/api/bookings/status/${customBookingId}`
-    );
+      // Check booking status first
+      const statusResponse = await axios.get(
+        `${import.meta.env.VITE_APP_API_BASE_URL}/api/bookings/status/${customBookingId}`
+      );
 
-    if (statusResponse.data.success && statusResponse.data.booking.paymentStatus === "Completed") {
-      console.log("[PhonePe Verify] Already completed, skipping");
-      setPaymentProcessing(false);
-      toast.success("🎉 Payment already confirmed!");
-      navigate(`/ticket?bookingId=${customBookingId}`);
-      return;
-    }
-
-    toast.info("Verifying payment...");
-
-    const verifyResponse = await axios.post(
-      `${import.meta.env.VITE_APP_API_BASE_URL}/api/bookings/verify`,
-      {
-        orderId: orderId,
-        merchantOrderId: merchantOrderId,
-        bookingId: customBookingId,
+      if (statusResponse.data.success && statusResponse.data.booking.paymentStatus === "Completed") {
+        console.log("[PhonePe Verify] Already completed, skipping");
+        setPaymentProcessing(false);
+        toast.success("🎉 Payment already confirmed!");
+        navigate(`/ticket?bookingId=${customBookingId}`);
+        return;
       }
-    );
 
-    if (verifyResponse.data.success) {
-      setPaymentProcessing(false);
-      toast.success("🎉 Payment verified successfully!");
-      navigate(`/ticket?bookingId=${customBookingId}`);
-    } else {
-      setPaymentProcessing(false);
-      toast.error(verifyResponse.data.message || "❌ Payment verification failed");
-    }
-  } catch (error) {
-    console.error("[PhonePe Verify] Error:", error);
-    setPaymentProcessing(false);
-    toast.error(error.response?.data?.message || "Payment verification failed. Please contact support.");
-  }
-};
+      toast.info("Verifying payment...");
 
-const handlePayment = async (e) => {
-  e.preventDefault();
+      const verifyResponse = await axios.post(
+        `${import.meta.env.VITE_APP_API_BASE_URL}/api/bookings/verify`,
+        {
+          orderId: orderId,
+          merchantOrderId: merchantOrderId,
+          bookingId: customBookingId,
+        }
+      );
 
-  // ✅ Validate billing details
-  if (
-    !billingDetails.email ||
-    !billingDetails.firstName ||
-    !billingDetails.lastName ||
-    !billingDetails.phone ||
-    !billingDetails.city
-  ) {
-    toast.error("Please fill all the details");
-    return;
-  }
-
-  try {
-    console.log("[handlePayment] Creating booking...");
-
-    // ✅ Create booking
-    const response = await axios.post(
-      `${import.meta.env.VITE_APP_API_BASE_URL}/api/bookings/create`,
-      {
-        waterpark: resortId,
-        waternumber: waternumber,
-        waterparkName: resortName,
-        name: `${billingDetails.firstName} ${billingDetails.lastName}`,
-        email: billingDetails.email,
-        phone: billingDetails.phone,
-        date: formattedDate,
-        adults: adultCount,
-        children: childCount,
-        total: discountedTotalAmount,
-        advanceAmount: finalTotal,
-        paymentType: paymentType,
-        paymentMethod: paymentMethod,
-        terms: terms,
+      if (verifyResponse.data.success) {
+        setPaymentProcessing(false);
+        toast.success("🎉 Payment verified successfully!");
+        navigate(`/ticket?bookingId=${customBookingId}`);
+      } else {
+        setPaymentProcessing(false);
+        toast.error(verifyResponse.data.message || "❌ Payment verification failed");
       }
-    );
+    } catch (error) {
+      console.error("[PhonePe Verify] Error:", error);
+      setPaymentProcessing(false);
+      toast.error(error.response?.data?.message || "Payment verification failed. Please contact support.");
+    }
+  };
 
-    const { success, redirectUrl, orderId, merchantOrderId, booking } = response.data;
+  const handlePayment = async (e) => {
+    e.preventDefault();
 
-    if (!success) {
-      console.error("[handlePayment] Booking creation failed:", response.data.message);
-      toast.error("Failed to create booking. Please try again.");
+    // ✅ Validate billing details
+    if (
+      !billingDetails.email ||
+      !billingDetails.firstName ||
+      !billingDetails.lastName ||
+      !billingDetails.phone ||
+      !billingDetails.city
+    ) {
+      toast.error("Please fill all the details");
       return;
     }
 
-    console.log("[handlePayment] Booking created:", booking);
+    try {
+      console.log("[handlePayment] Creating booking...");
 
-    // ✅ Cash Payment
-    if (paymentMethod === "cash") {
-      toast.success("Booking created successfully with cash payment.");
-      console.log("[handlePayment] Redirecting to ticket page for cash booking...");
-      navigate(`/ticket?bookingId=${booking.customBookingId}`);
-      return;
-    }
+      // ✅ Create booking
+      const response = await axios.post(
+        `${import.meta.env.VITE_APP_API_BASE_URL}/api/bookings/create`,
+        {
+          waterpark: resortId,
+          waternumber: waternumber,
+          waterparkName: resortName,
+          name: `${billingDetails.firstName} ${billingDetails.lastName}`,
+          email: billingDetails.email,
+          phone: billingDetails.phone,
+          date: formattedDate,
+          adults: adultCount,
+          children: childCount,
+          total: discountedTotalAmount,
+          advanceAmount: finalTotal,
+          paymentType: paymentType,
+          paymentMethod: paymentMethod,
+          terms: terms,
+          couponCode: appliedCoupon?.code,
+        }
+      );
 
-    // ✅ PhonePe Payment
-    if (paymentMethod === "phonepe" && redirectUrl) {
-      setCurrentBookingId(booking.customBookingId);
-      setPaymentProcessing(true);
-      
-      console.log("[handlePayment] Redirecting to PhonePe payment page...");
-      console.log("[handlePayment] Redirect URL:", redirectUrl);
-      // Redirect to PhonePe payment page
-      window.location.href = redirectUrl;
-    } else if (paymentMethod === "phonepe") {
-      toast.error("Failed to initiate PhonePe payment. Please try again.");
+      const { success, redirectUrl, orderId, merchantOrderId, booking } = response.data;
+
+      if (!success) {
+        console.error("[handlePayment] Booking creation failed:", response.data.message);
+        toast.error("Failed to create booking. Please try again.");
+        return;
+      }
+
+      console.log("[handlePayment] Booking created:", booking);
+
+      // ✅ Cash Payment
+      if (paymentMethod === "cash") {
+        toast.success("Booking created successfully with cash payment.");
+        console.log("[handlePayment] Redirecting to ticket page for cash booking...");
+        navigate(`/ticket?bookingId=${booking.customBookingId}`);
+        return;
+      }
+
+      // ✅ PhonePe Payment
+      if (paymentMethod === "phonepe" && redirectUrl) {
+        setCurrentBookingId(booking.customBookingId);
+        setPaymentProcessing(true);
+
+        console.log("[handlePayment] Redirecting to PhonePe payment page...");
+        console.log("[handlePayment] Redirect URL:", redirectUrl);
+        // Redirect to PhonePe payment page
+        window.location.href = redirectUrl;
+      } else if (paymentMethod === "phonepe") {
+        toast.error("Failed to initiate PhonePe payment. Please try again.");
+        setPaymentProcessing(false);
+      }
+    } catch (error) {
+      console.error("[handlePayment] Error initiating payment:", error);
+      toast.error("Payment initiation failed. Please try again.");
       setPaymentProcessing(false);
     }
-  } catch (error) {
-    console.error("[handlePayment] Error initiating payment:", error);
-    toast.error("Payment initiation failed. Please try again.");
-    setPaymentProcessing(false);
-  }
-};
+  };
 
 
   return (
@@ -366,11 +367,11 @@ const handlePayment = async (e) => {
                       htmlFor={field}
                       className="text-gray-700 font-medium mb-2"
                     >
-                      {field === "phone" 
+                      {field === "phone"
                         ? "WhatsApp Number (can be used as login)"
                         : field
-                            .replace(/([A-Z])/g, " $1")
-                            .replace(/^./, (str) => str.toUpperCase())
+                          .replace(/([A-Z])/g, " $1")
+                          .replace(/^./, (str) => str.toUpperCase())
                       }
                       <span className="text-red-500">*</span>
                     </label>
@@ -394,7 +395,7 @@ const handlePayment = async (e) => {
             <h2 className="text-2xl font-semibold text-cyan-600 mb-4">
               Have a Coupon?
             </h2>
-            
+
             {!appliedCoupon ? (
               <div className="flex items-center gap-4">
                 <input
@@ -434,11 +435,11 @@ const handlePayment = async (e) => {
                     Remove
                   </button>
                 </div>
-                
-            
+
+
               </div>
             )}
-            
+
             {couponError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
                 <div className="flex items-center gap-2">
@@ -482,7 +483,7 @@ const handlePayment = async (e) => {
                     <td className="py-3 px-4">₹{paid}</td>
                   </tr>
 
-               
+
 
                   <tr className="border-b">
                     <td className="py-3 px-4">Total Amount:</td>
@@ -506,11 +507,11 @@ const handlePayment = async (e) => {
                   )}
                   {paymentType === 'advance' && (
                     <tr className="border-b">
-                      <td className="py-3 px-4">Remaining to be <br/>Paid in Waterpark:</td>
+                      <td className="py-3 px-4">Remaining to be <br />Paid in Waterpark:</td>
                       <td className="py-3 px-4">₹{remainingAmount}</td>
                     </tr>
                   )}
-                 
+
                   <tr>
                     <td className="py-3 px-4 font-semibold text-cyan-700">
                       {paymentType === 'full' ? 'Payable Total Amount (Full Payment):' : 'Payable Total Amount (Advance):'}
@@ -541,11 +542,10 @@ const handlePayment = async (e) => {
           <button
             onClick={handlePayment}
             disabled={paymentProcessing}
-            className={`w-full py-3 rounded-xl shadow-lg transform transition duration-300 ${
-              paymentProcessing
+            className={`w-full py-3 rounded-xl shadow-lg transform transition duration-300 ${paymentProcessing
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-blue-500 hover:to-cyan-400 hover:scale-105"
-            } text-white`}
+              } text-white`}
           >
             {paymentProcessing ? (
               <div className="flex items-center justify-center gap-2">

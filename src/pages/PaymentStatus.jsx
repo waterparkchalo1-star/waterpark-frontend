@@ -88,10 +88,10 @@ const PaymentStatus = () => {
         
         if (bookingResponse.data.success && bookingResponse.data.booking) {
           const booking = bookingResponse.data.booking;
-          const phonePeOrderId = booking.phonepeOrderId || orderId;
+          const phonePeMerchantOrderId = booking.phonepeMerchantOrderId || orderId;
           
-          // Check PhonePe payment status
-          const response = await paymentService.getPhonePeStatus(phonePeOrderId);
+          // Check PhonePe payment status using merchant order ID
+          const response = await paymentService.getPhonePeStatus(phonePeMerchantOrderId);
           setStatus(response.status);
           setOrderDetails(response.data?.data || response.data);
         } else {
