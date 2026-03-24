@@ -81,7 +81,7 @@ function CheckoutPage() {
     }
   }, [user]);
 
-  const [paymentMethod, setPaymentMethod] = useState("razorpay");
+  const [paymentMethod, setPaymentMethod] = useState("phonepe");
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -259,10 +259,17 @@ function CheckoutPage() {
         if (window.PhonePeCheckout) {
           window.PhonePeCheckout.transact({
             tokenUrl: redirectUrl,
-            callback: function(response) {
+            type: "IFRAME",
+            callback: function (response) {
               console.log("[PhonePeCallback]", response);
-              // Handle callback logic here if necessary, or let the webhook / redirect URL handle it.
-              // Assuming redirectUrl naturally returns to the app when done.
+              if (response === 'USER_CANCEL') {
+                toast.error("Payment was cancelled. Please try again.");
+                setPaymentProcessing(false);
+                return;
+              } else if (response === 'CONCLUDED') {
+                window.location.href = `${import.meta.env.VITE_APP_FRONTEND_URL || window.location.origin}/payment/status?orderId=${merchantOrderId}&bookingId=${booking.customBookingId}`;
+                return;
+              }
             }
           });
         } else {
@@ -618,8 +625,8 @@ function CheckoutPage() {
             onClick={handlePayment}
             disabled={paymentProcessing}
             className={`w-full py-3 rounded-xl shadow-lg transform transition duration-300 ${paymentProcessing
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-blue-500 hover:to-cyan-400 hover:scale-105"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-blue-500 hover:to-cyan-400 hover:scale-105"
               } text-white`}
           >
             {paymentProcessing ? (
