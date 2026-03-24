@@ -81,7 +81,7 @@ function CheckoutPage() {
     }
   }, [user]);
 
-  const [paymentMethod, setPaymentMethod] = useState("phonepe");
+  const [paymentMethod, setPaymentMethod] = useState("razorpay");
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -261,9 +261,71 @@ function CheckoutPage() {
         toast.error("Failed to initiate PhonePe payment. Please try again.");
         setPaymentProcessing(false);
       }
+
+      // ✅ Razorpay Payment
+      if (paymentMethod === "razorpay" && orderId) {
+        setCurrentBookingId(booking.customBookingId);
+        setPaymentProcessing(true);
+
+        const options = {
+          key: response.data.razorpayKeyId,
+          amount: response.data.amount,
+          currency: response.data.currency,
+          name: resortName || "Water Park Booking",
+          description: "Water Park Ticket Booking",
+          order_id: response.data.orderId,
+          handler: async function (paymentResponse) {
+            try {
+              toast.info("Verifying payment...");
+              const verifyResponse = await axios.post(
+                `${import.meta.env.VITE_APP_API_BASE_URL}/api/bookings/verify`,
+                {
+                  paymentMethod: "razorpay",
+                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                  razorpay_order_id: paymentResponse.razorpay_order_id,
+                  razorpay_signature: paymentResponse.razorpay_signature,
+                  bookingId: booking.customBookingId,
+                }
+              );
+
+              if (verifyResponse.data.success) {
+                setPaymentProcessing(false);
+                toast.success("🎉 Payment verified successfully!");
+                navigate(`/ticket?bookingId=${booking.customBookingId}`);
+              } else {
+                setPaymentProcessing(false);
+                toast.error(verifyResponse.data.message || "❌ Payment verification failed");
+              }
+            } catch (error) {
+              console.error("[Razorpay Verify] Error:", error);
+              setPaymentProcessing(false);
+              toast.error("Payment verification failed. Please contact support.");
+            }
+          },
+          prefill: {
+            name: `${billingDetails.firstName} ${billingDetails.lastName}`,
+            email: billingDetails.email,
+            contact: billingDetails.phone,
+          },
+          theme: {
+            color: "#3b82f6",
+          },
+        };
+
+        const rzp1 = new window.Razorpay(options);
+        rzp1.on("payment.failed", function (failResponse) {
+          toast.error("Payment failed. Please try again.");
+          setPaymentProcessing(false);
+        });
+        rzp1.open();
+      } else if (paymentMethod === "razorpay") {
+        toast.error("Failed to initiate Razorpay payment. Please try again.");
+        setPaymentProcessing(false);
+      }
     } catch (error) {
       console.error("[handlePayment] Error initiating payment:", error);
-      toast.error("Payment initiation failed. Please try again.");
+      const errMessage = error.response?.data?.message || "Payment initiation failed. Please try again.";
+      toast.error(`❌ ${errMessage}`);
       setPaymentProcessing(false);
     }
   };
@@ -535,6 +597,7 @@ function CheckoutPage() {
               onChange={(e) => setPaymentMethod(e.target.value)}
               className="px-4 py-2 border border-cyan-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
+              <option value="razorpay">Razorpay</option>
               <option value="phonepe">PhonePe</option>
             </select>
           </div>
