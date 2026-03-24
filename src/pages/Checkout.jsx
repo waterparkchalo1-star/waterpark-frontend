@@ -255,8 +255,20 @@ function CheckoutPage() {
 
         console.log("[handlePayment] Redirecting to PhonePe payment page...");
         console.log("[handlePayment] Redirect URL:", redirectUrl);
-        // Redirect to PhonePe payment page
-        window.location.href = redirectUrl;
+
+        if (window.PhonePeCheckout) {
+          window.PhonePeCheckout.transact({
+            tokenUrl: redirectUrl,
+            callback: function(response) {
+              console.log("[PhonePeCallback]", response);
+              // Handle callback logic here if necessary, or let the webhook / redirect URL handle it.
+              // Assuming redirectUrl naturally returns to the app when done.
+            }
+          });
+        } else {
+          // Fallback if PhonePe SDK failed to load
+          window.location.href = redirectUrl;
+        }
       } else if (paymentMethod === "phonepe") {
         toast.error("Failed to initiate PhonePe payment. Please try again.");
         setPaymentProcessing(false);
