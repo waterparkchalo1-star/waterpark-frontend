@@ -81,7 +81,7 @@ function CheckoutPage() {
     }
   }, [user]);
 
-  const [paymentMethod, setPaymentMethod] = useState("phonepe");
+  const [paymentMethod, setPaymentMethod] = useState("razorpay");
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
