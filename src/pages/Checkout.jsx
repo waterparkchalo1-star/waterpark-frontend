@@ -617,7 +617,7 @@ function CheckoutPage() {
               className="px-4 py-2 border border-cyan-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               <option value="razorpay">Razorpay</option>
-              <option value="phonepe">PhonePe</option>
+              {/* <option value="phonepe">PhonePe</option> */}
             </select>
           </div>
 
